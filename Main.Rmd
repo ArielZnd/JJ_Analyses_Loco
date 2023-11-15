@@ -1,0 +1,553 @@
+---
+title: "JJ Loco Tasks | Crossing | Complex"
+author: "Ariel Zenouda"
+date: "2023-11-09"
+output:
+ html_document:
+   toc: true
+   toc_float: true
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# SAP - Plan statistique
+* Le critère de jugement principal : test de comparaison IOL 1 vs 2. Fisher ou Wilcoxon selon la distribution des données. Variables principales : 
+** Crossing : walking_speed, crossing_1_lead_vertical_toe_clearance, crossing_2_lead_vertical_toe_clearance 
+** Complex : walking_speed, mean_percentage_brown_pixel, 
+
+# Chunks proces
+* Run selected Chunks if TRUE
+```{r Chunks process, eval=TRUE, include=FALSE}
+Import_library <- "TRUE"
+Work_Directory <- "TRUE"
+# Crossing
+Load_data_crossing <- "TRUE"
+Normality_crossing <- "TRUE"
+plotbySubj_crossing  <- "TRUE"
+plotAllSubj_crossing  <- "TRUE"
+TTest_crossing  <- "TRUE"
+# Complex
+Load_data_Complex <- "TRUE"
+Normality_Complex <- "TRUE"
+plotbySubj_Complex  <- "TRUE"
+plotAllSubj_Complex  <- "TRUE"
+TTest_Complex  <- "TRUE"
+
+print(paste("Import library : ", Import_library, sep=''))
+print(paste("Work Directory : ", Work_Directory, sep=''))
+# Crossing
+print("Crossing chunks process : ")
+print(paste("Load data Combined Crossing.csv : ", Load_data_crossing, sep=''))
+print(paste("Normality test - Shapiro : ", Normality_crossing, sep=''))
+print(paste("Boxplot all trial by subject : ", plotbySubj_crossing, sep=''))
+print(paste("Boxplot mean of all subject : ", plotAllSubj_crossing, sep=''))
+print(paste("Fisher test - Comparaison by IOL : ", TTest_crossing, sep=''))
+# Complex
+print("Complex chunks process : ")
+print(paste("Load data Combined Complex.csv : ", Load_data_Complex, sep=''))
+print(paste("Normality test - Shapiro : ", Normality_Complex, sep=''))
+print(paste("Boxplot all trial by subject : ", plotbySubj_Complex, sep=''))
+print(paste("Boxplot mean of all subject : ", plotAllSubj_Complex, sep=''))
+print(paste("Fisher test - Comparaison by IOL : ", TTest_Complex, sep=''))
+```
+# Import library
+```{r Import library, eval=TRUE, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# install.packages("rmarkdown")
+library(readxl)
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+# library(devtools)
+# library(htmltools)
+# install_version("htmltools", version = "0.5.4", dependencies = TRUE)
+library(knitr)
+library(kableExtra)
+library(psych)
+# library(flextable)
+library(gapminder)
+library(patchwork)
+# library(hrbrthemes)
+# library(viridis)
+# library(broom)
+library(lme4)
+library(rstatix)
+# install.packages('nortest')
+library(nortest)
+# install.packages("knitr")
+library(knitr)
+library(xfun)
+# install.packages("moments")
+# library(installr)
+library(psych)
+library(car)
+library(stats)
+library(moments)
+library(gridExtra)
+if (!requireNamespace("MASS", quietly = TRUE)) {install.packages("MASS")}
+library(MASS)
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+```
+# Work Directory
+```{r Work Directory, eval=TRUE}
+knitr::opts_chunk$set(echo = FALSE)
+wd <- "D:/DriveStreetlab/Drive partagés/J_n_J_Clinical_Trials/J_n_J_WO6_Artemis2(Dec2022- )/SAP/R/JJ Loco Analyses R/"
+# wd <- "G:/Drive partagés/J_n_J_Clinical_Trials/J_n_J_WO6_Artemis2(Dec2022- )/SAP/R/JJ Loco Analyses R/"
+fn_Crossing <- "Crossing_Session_result_combined_13_11_2023.csv"
+fn_Complex <- "Complex_Session_result_combined_13_11_2023.csv"
+fn_Group <- "IOL-group.csv"
+fn_List_Subject <- "List_Subject.csv"
+
+ffn_Crossing <- paste(wd,fn_Crossing, sep = "") 
+ffn_Complex <- paste(wd,fn_Complex, sep = "") 
+ffn_Group <- paste(wd,fn_Group, sep = "") 
+ffn_List_Subject <- paste(wd,fn_List_Subject, sep = "") 
+# plotpath <- "E:/Documents/ProjetsStreetlab/JnJ/J_n_J_WO6_Artemis2(Dec2022- )/Plot/"
+plotpath <- "D:/Streetlab/JJ/J_n_J_WO6_Artemis2(Dec2022- )/Plot"
+
+df.List.Subj <- read.csv(ffn_List_Subject, sep=";", dec=".",  na.strings = c("", "NA"))
+df.Group <- read.csv(ffn_Group, sep=",", dec=".",  na.strings = c("", "NA"))
+
+print(wd)
+print(fn_Crossing)
+print(fn_Complex)
+print(fn_Group)
+print(fn_List_Subject)
+print(plotpath)
+
+```
+
+# Crossing
+## Load data
+Loading data Crossing ...
+```{r Load data, eval=TRUE}
+df <- data.frame()
+
+df.Crossing <- read.csv(ffn_Crossing, sep=";", dec=".",  na.strings = c("", "NA"))
+# names(df.Crossing)
+
+# create new colum with SubjectID
+df <- df.Crossing %>% mutate(SubjID = c(substr(df.Crossing$session_name, 3, 6)))
+df <- df %>% filter(task_type != "0_0-0_0")
+
+# exclusion des participants
+df_subj_excluded_Crossing <- df.List.Subj %>% filter(Crossing == "No")
+df_subj_valid_Crossing <- df.List.Subj %>% filter(Crossing == "Yes")
+df  <-  subset(df, !(SubjID %in% df_subj_excluded_Crossing))
+
+list.subj <- unique(df$SubjID)
+
+header_fact <-  c("SubjID", "session_name","trial_name", "category", "light_condition_lux", "task_type","step_1_height", "step_1_position", "step_2_height", "step_2_position" )
+for (i in header_fact) {df[[i]] <- as.factor(df[[i]])}
+# header_int <-  c("Order", "index","index_in_phase")
+# for (i in header_int) {df[[i]] <- as.integer(df[[i]])}
+
+my_vars <- list()  
+my_vars <-  c("trial_duration", "walking_duration",	"walking_distance", "walking_speed",	"sd_walking_speed",	"pitch_head_mean","pitch_head_sd", "crossing_1_penultimate_foot_placement",		"crossing_1_final_foot_placement",		"crossing_1_lead_vertical_toe_clearance",
+	"crossing_1_trail_vertical_toe_clearance",	"crossing_1_lead_foot_placement_toe", 	"crossing_1_lead_foot_placement_heel",
+	"crossing_1_trail_foot_placement_toe",	"crossing_1_trail_foot_placement_heel",	"crossing_1_step_length_crossing", 		"crossing_1_step_width_crossing", 			"crossing_1_mean_speed_lead_foot_heel_strike_after",	"crossing_1_mean_speed_lead_foot_toe_strike_after",	"crossing_1_mean_speed_head_lateral",		"crossing_1_sd_speed_head_lateral", 		"crossing_1_mean_speed_head_longitudinal", 		"crossing_1_sd_speed_head_longitudinal", 		"crossing_1_head_pitch_frame_lead_foot_toe_off_before", 		"crossing_1_head_pitch_frame_applomb_lead_foot", 		"crossing_1_head_pitch_frame_trail_foot_heel_strike_after",
+		"crossing_1_frame_lead_foot_heel_strike_after",
+	"crossing_2_penultimate_foot_placement",		"crossing_2_final_foot_placement",		"crossing_2_lead_vertical_toe_clearance",
+	"crossing_2_trail_vertical_toe_clearance",	"crossing_2_lead_foot_placement_toe", 	"crossing_2_lead_foot_placement_heel",
+	"crossing_2_trail_foot_placement_toe",	"crossing_2_trail_foot_placement_heel",	"crossing_2_step_length_crossing", 		"crossing_2_step_width_crossing", 	"crossing_2_mean_speed_lead_foot_heel_strike_after",	"crossing_2_mean_speed_lead_foot_toe_strike_after",	"crossing_2_mean_speed_head_lateral",		"crossing_2_sd_speed_head_lateral", 		"crossing_2_mean_speed_head_longitudinal", 		"crossing_2_sd_speed_head_longitudinal", 		"crossing_2_head_pitch_frame_lead_foot_toe_off_before", 		"crossing_2_head_pitch_frame_applomb_lead_foot", 		"crossing_2_head_pitch_frame_trail_foot_heel_strike_after",
+		"crossing_2_frame_lead_foot_heel_strike_after")
+for (i in my_vars) {df[[i]] <- as.numeric(ifelse(is.na(as.numeric(df[[i]])), NA, df[[i]]))}
+
+# Boolean :
+header_chr <-  c("trial_duration_in_range",	"walking_duration_in_range",	"walking_distance_in_range",	"walking_speed_in_range",	"sd_walking_speed_in_range",	"pitch_head_mean_in_range",	"pitch_head_sd_in_range",
+"crossing_1_penultimate_foot_placement_in_range", "crossing_1_final_foot_placement_in_range", "crossing_1_lead_vertical_toe_clearance_in_range","crossing_1_trail_vertical_toe_clearance_in_range", "crossing_1_lead_foot_placement_toe_in_range", "crossing_1_lead_foot_placement_heel_in_range","crossing_1_trail_foot_placement_toe_in_range", "crossing_1_trail_foot_placement_heel_in_range",
+"crossing_1_step_length_crossing_in_range", "crossing_1_step_width_crossing_in_range","crossing_1_double_support_before_crossing_in_range",
+"crossing_1_single_support_trail_in_range", "crossing_1_double_support_crossing_in_range", "crossing_1_single_support_lead_in_range",
+"crossing_1_mean_speed_head_lateral_in_range", "crossing_1_sd_speed_head_lateral_in_range", "crossing_1_mean_speed_head_longitudinal_in_range",
+"crossing_1_sd_speed_head_longitudinal_in_range", "crossing_1_head_pitch_frame_lead_foot_toe_off_before_in_range", "crossing_1_head_pitch_frame_applomb_lead_foot_in_range", "crossing_1_head_pitch_frame_trail_foot_heel_strike_after_in_range",
+"crossing_1_can_calculate_result", "crossing_1_MOS_AP_Y_in_range","crossing_1_MOS_ML_X_in_range",
+"crossing_2_penultimate_foot_placement_in_range", "crossing_2_final_foot_placement_in_range", "crossing_2_lead_vertical_toe_clearance_in_range","crossing_2_trail_vertical_toe_clearance_in_range", "crossing_2_lead_foot_placement_toe_in_range", "crossing_2_lead_foot_placement_heel_in_range","crossing_2_trail_foot_placement_toe_in_range", "crossing_2_trail_foot_placement_heel_in_range",
+"crossing_2_step_length_crossing_in_range", "crossing_2_step_width_crossing_in_range","crossing_2_double_support_before_crossing_in_range",
+"crossing_2_single_support_trail_in_range", "crossing_2_double_support_crossing_in_range", "crossing_2_single_support_lead_in_range",
+"crossing_2_mean_speed_head_lateral_in_range", "crossing_2_sd_speed_head_lateral_in_range", "crossing_2_mean_speed_head_longitudinal_in_range",
+"crossing_2_sd_speed_head_longitudinal_in_range", "crossing_2_head_pitch_frame_lead_foot_toe_off_before_in_range", "crossing_2_head_pitch_frame_applomb_lead_foot_in_range", "crossing_2_head_pitch_frame_trail_foot_heel_strike_after_in_range",
+"crossing_2_can_calculate_result", "crossing_2_MOS_AP_Y_in_range","crossing_2_MOS_ML_X_in_range")
+for (i in header_chr) {df[[i]] <- as.character(df[[i]])}
+
+# Filtrage Outliers
+outliers_info <- list()
+
+for (variable in my_vars) {
+  # Calculer la moyenne et l'écart-type
+  mean_val <- mean(df[[variable]], na.rm = TRUE)
+  sd_val <- sd(df[[variable]], na.rm = TRUE)
+  print(paste("mean_val", mean_val, "sd_val", sd_val))
+  # Définir les limites pour détecter les outliers
+  lower_limit <- mean_val - 1.96 * sd_val
+  upper_limit <- mean_val + 1.96 * sd_val
+  print(paste("lower_limit", lower_limit,",", "upper_limit", upper_limit))
+  
+  # Identifier les indices des outliers
+  outlier_indices <- which(df[[variable]] < lower_limit | df[[variable]] > upper_limit)
+  print(toutlier_indices)
+  
+  # Stocker les informations sur les outliers
+  outliers_info[[paste("Outliers_", variable)]] <- df[outlier_indices, c("trial", variable), drop = FALSE]
+  
+  # Exclure les outliers de la dataframe
+  df <- df[-outlier_indices, ]
+}
+
+# Afficher les informations sur les outliers
+print(outliers_info)
+
+
+
+```
+
+...Loading data Crossing succed
+
+## Normality test - Shapiro
+```{r Crossing Normality, eval=FALSE}
+SaveFig <- "TRUE"
+
+print("Crossing - Analyses de la normalité des données pour l'ensemble des variables")
+
+variables_normales <- c()
+variables_non_normales <- c()
+
+for (var in my_vars) {
+  df <- df[complete.cases(df[[var]]), ]
+  # Calculer l'indice de kurtosis et de skewness
+  kurt <- kurtosis(df[[var]])
+  skew <- skewness(df[[var]])
+
+  Shapiro.Wilk = shapiro.test(df[[var]])
+  print(Shapiro.Wilk)
+  
+  # Vérifier si la variable suit une distribution normale (p-value > 0.05)
+  if (Shapiro.Wilk$p.value > 0.05) {
+    variables_normales <- c(variables_normales, var)
+    print(paste("La variable ",var , " suit une distribution normale.", sep="" ))
+    H0 <- print("Distribution normale")} 
+  else {variables_non_normales <- c(variables_non_normales, var)
+   print(paste("La variable ",var , " suit une distribution non normale.", sep="" ))
+   H0 <- print("Distribution non normale")}
+
+# Créez un graphique de densité
+  density_plot <- ggplot(df, aes(x = .data[[var]])) +
+   geom_histogram(fill = "blue", alpha = 0.7, bins = 30) +
+  labs(title = paste(
+    "Shapiro Normality : ", "\n",
+      "t.test : t = ", format(Shapiro.Wilk$statistic, digits = 3),
+      ", p-value : ", format(Shapiro.Wilk$p.value, digits = 3), "\n",
+    H0,"\n",
+      "Kurtosis =", round(kurt, 2), ", Skewness =", round(skew, 2)),"\n", 
+          x = var, y = "Count")
+    
+  # Créez un QQ-plot
+  qq_plot <- ggplot(df, aes(sample = .data[[var]])) +
+    stat_qq() +
+    stat_qq_line() +
+    labs(title = paste("QQ-Plot"))
+  
+  # Affichez les deux graphiques côte à côte
+  plot <- grid.arrange(density_plot, qq_plot, ncol = 2, widths = c(20, 10))
+  print(plot)
+  # Save fig
+  if (SaveFig) {ggsave(filename = paste(plotpath,"Crossing/","Normality_",var,".png", sep = ""), plot = plot)}
+}
+
+# # Transformation des données si la distribution ne suit pas une loi normale
+# var <- df$walking_speed
+# x <- var
+# hist(var)
+# shapiro.test(x)
+# boxcox(lm(x ~ 1))
+# new <- log(x)
+# hist(new)
+# shapiro.test(new)
+# 
+# # BOxcox and Exact optimal lambda
+# b <- boxcox(lm(x ~ 1))
+# lambda <- b$x[which.max(b$y)]
+# new_x_exact <- (x ^ lambda - 1) / lambda
+# hist(new_x_exact)
+# shapiro.test(new_x_exact)
+
+
+```
+
+## Visualisation des données
+### Plot for each subject
+```{r Crossing Distribution for each subject, eval=FALSE}
+print("Liste des sujets analysés")
+print(list.subj)
+
+for (i in list.subj) {
+  print(i)
+  df.unique.subj <- subset(df, SubjID == i)
+  for (var in my_vars) {
+    print(paste("Boxplot variable : ",var))
+    # boxplot <- ggplot(df.unique.subj, aes(x = df.unique.subj$SubjID, y = .data[[var]])) + geom_boxplot(position = position_dodge(0.8), width = 0.7) + labs(x = df.unique.subj$SubjID, y = var)
+
+    boxplot <- ggplot(df.unique.subj, aes(x = trial_name, y = .data[[var]])) +
+    labs(title=paste("Sujet : ", i, "   ", "Boxplot variable : ",var), x = "Trial name", y = var) +
+    geom_point() +  theme(axis.text.x = element_text(angle = 90))
+    print(boxplot)
+    ggsave(filename = paste(plotpath,"Crossing/",i, "_",var,".png", sep = ""), plot = boxplot)
+  }}
+
+
+```
+
+### Plot for all subj
+```{r Crossing Distribution all subj, eval=FALSE }
+list.subj <- unique(df$SubjID)
+for (var in my_vars) {
+    print(paste("Boxplot variable : ",var))
+    boxplot <- ggplot(df, aes(x = df$SubjID, y = .data[[var]])) + geom_boxplot(position = position_dodge(0.8),
+    width = 0.7) + labs(title=paste("Boxplot variable : ",var), x = df$SubjID, y = var) + geom_jitter(color="black", size=0.4, alpha=0.9) + theme(axis.text.x = element_text(angle = 90))
+    print(boxplot)
+    ggsave(filename = paste(plotpath,"Crossing/","All_subj_",var,".png", sep = ""), plot = boxplot)
+}
+
+```
+
+## Comparaison IOL - Crossing
+```{r Crossing T.test, eval=FALSE}
+df <- merge(df, df.Group, by = "SubjID")
+df <- df[, c("IOL", setdiff(names(df), "IOL"))]
+
+header_fact <-  c("IOL", "SubjID", "session_name","trial_name", "category", "light_condition_lux", "task_type","step_1_height", "step_1_position", "step_2_height", "step_2_position" )
+for (i in header_fact) { i <- as.factor(df$i)}
+
+# Initialiser une liste pour stocker les résultats des tests t
+t_test_results <- list()
+# Boucle à travers les variables (à partir de la colonne 2, car la colonne 1 est subjectID)
+for (variable in my_vars) {
+    # Effectuer le test t pour la variable actuelle
+  t_test_result <- t.test(df[[variable]] ~ df$IOL)
+    # Stocker les résultats dans la liste
+  t_test_results[[variable]] <- t_test_result}
+
+for (var in variables_normales) {
+  res <- t.test(df[[var]] ~ df$IOL)
+  print(paste("Boxplot variable : ",var))
+  boxplot <- ggplot(df, aes(x = factor(IOL), y = .data[[var]])) +
+  geom_boxplot(position = position_dodge(0.8), width = 0.7) +
+  labs(title = paste("Mean by IOL : ", var),x = "Groupe IOL",y = var)+
+  annotate("text", label = paste("Student's t-Test : ", "t = ", format(res$statistic, digits = 3),", df = ",
+  format(res$parameter, digits = 3),  ", p-value : ", format(res$p.value, digits = 3)), 
+  x = max(df$IOL)*0.8, y = max(df[[var]], na.rm = TRUE)* 1.1) 
+  print(boxplot)
+  ggsave(filename = paste(plotpath,"Crossing/","Comparison_IOL_",var,".png", sep = ""), plot = boxplot)
+  print(paste("T.test variable : ",var))
+  print(res)
+}
+  
+
+for (var in variables_non_normales) {
+  res<- wilcox.test(df[[var]] ~ df$IOL)
+  print(paste("Boxplot variable : ",var))
+  boxplot <- ggplot(df, aes(x = factor(IOL), y = .data[[var]])) +
+  geom_boxplot(position = position_dodge(0.8), width = 0.7) +
+  labs(title = paste("Mean by IOL : ", var),x = "Groupe IOL",y = var)+
+  annotate("text", label = paste("Wilcoxon test ",  "Method : ", res$alternative,  ", V = ", format(res$statistic, digits = 3), ", p-value : ", format(res$p.value, digits = 3)), 
+  x = max(df$IOL)*0.8, y = max(df[[var]], na.rm = TRUE)* 1.1) 
+  print(boxplot)
+  ggsave(filename = paste(plotpath,"Crossing/","Comparison_IOL_",var,".png", sep = ""), plot = boxplot)
+  print(paste("wilcoxon result: ",var))
+  print(res)  
+}
+```
+
+
+# Complex
+## Load data 
+Loading data Complex ...
+```{r Complex Load data, eval=FALSE}
+df <- data.frame()
+df.IOL <- read.csv(ffn_Group, sep=",", dec=".",  na.strings = c("", "NA"))
+
+df.Complex <- read.csv(ffn_Complex, sep=";", dec=".",  na.strings = c("", "NA"))
+
+# names(df.Complex)
+
+# create new colum with SubjectID
+df <- df.Complex %>% mutate(SubjID = c(substr(df.Complex$session_name, 3, 6)))
+
+# Ignorer les essais de Familiarisation
+df <- subset(df, category == "ComplexT")
+
+# exclusion des participants
+df_subj_excluded_Complex <- df.List.Subj %>% filter(Complex == "No")
+df_subj_valid_Complex <- df.List.Subj %>% filter(Complex == "Yes")
+df  <-  subset(df, !(SubjID %in% df_subj_excluded_Complex))
+
+list.subj <- unique(df$SubjID)
+print(list.subj)
+
+# names(df)
+header_fact <-  c("SubjID", "session_name","trial_name", "category", "light_condition_lux", "task_type") 
+for (i in header_fact)  {df[[i]] <- as.factor(df[[i]])}
+
+# header_int <-  c("Order", "index","index_in_phase") 
+# for (i in header_int) {i <- as.integer(df$i)}
+my_vars <- list()  
+my_vars <-  c("trial_duration", "walking_duration", "walking_distance",
+"walking_speed","sd_walking_speed",
+"pitch_head_mean","pitch_head_sd","mean_percentage_light_green_pixel",
+"mean_percentage_brown_pixel",
+"mean_percentage_brown_2_first_steps","mean_percentage_brown_2_last_steps",
+"mean_percentage_brown_345_steps",
+"MEAN_MOS_AP_Y","STD_MOS_AP_Y","MAX_MOS_AP_Y","MIN_MOS_AP_Y",
+"MEAN_MOS_ML_X","STD_MOS_ML_X","MAX_MOS_ML_X","MIN_MOS_ML_X",
+"Acc_RMS_Head_X","Acc_RMS_Head_Y","Acc_RMS_Pelvis_X","Acc_RMS_Pelvis_Y") 
+for (i in my_vars) {df[[i]] <- as.numeric(ifelse(is.na(as.numeric(df[[i]])), NA, df[[i]]))}
+# for (i in my_vars) {  df[[i]] <- as.numeric(ifelse(is.na(df[[i]]) | !grepl("^\\d+$", df[[i]]), NA, df[[i]]))}
+
+# Filtrage Outliers
+for (variable in my_vars) {
+  remove_outliers <- function(df, variable, threshold = 1.96) {
+    # Remove rows with missing values in the variable
+    df <- df[complete.cases(df[[variable]]), ]
+    
+    # Calculer le premier et troisième quartile
+    q1 <- quantile(df[[variable]], 0.25)
+    q3 <- quantile(df[[variable]], 0.75)
+    
+    # Calculer l'écart interquartile (IQR)
+    iqr <- q3 - q1
+    
+    # Définir les limites pour détecter les outliers
+    lower_limit <- q1 - threshold * iqr
+    upper_limit <- q3 + threshold * iqr
+    
+    # Exclure les outliers de la dataframe
+    df_without_outliers <- df[which(df[[variable]] >= lower_limit & df[[variable]] <= upper_limit), ]
+    
+    return(df_without_outliers)
+  }
+  
+  # Apply the function to your dataframe
+  df <- remove_outliers(df, variable)
+}
+
+```
+## Normality test - Shapiro
+```{r Complex Normality, eval=FALSE}
+SaveFig <- "TRUE"
+variables_normales <- c()
+variables_non_normales <- c()
+
+for (var in my_vars) {
+  # df <- df[complete.cases(df[[var]]), ]
+  # Calculer l'indice de kurtosis et de skewness
+  kurt <- kurtosis(df[[var]])
+  skew <- skewness(df[[var]])
+
+  Shapiro.Wilk = shapiro.test(df[[var]])
+  print(Shapiro.Wilk)
+  
+  # Vérifier si la variable suit une distribution normale (p-value > 0.05)
+  if (Shapiro.Wilk$p.value > 0.05) {
+    variables_normales <- c(variables_normales, var)
+    print(paste("La variable ",var , " suit une distribution normale.", sep="" ))
+    H0 <- print("Distribution normale")} 
+  else {variables_non_normales <- c(variables_non_normales, var)
+   print(paste("La variable ",var , " suit une distribution non normale.", sep="" ))
+   H0 <- print("Distribution non normale")}
+
+# Créez un graphique de densité
+  density_plot <- ggplot(df, aes(x = .data[[var]])) +
+   geom_histogram(fill = "blue", alpha = 0.7, bins = 30) +
+  labs(title = paste(
+    "Shapiro Normality : ", "\n",
+      "t.test : t = ", format(Shapiro.Wilk$statistic, digits = 3),
+      ", p-value : ", format(Shapiro.Wilk$p.value, digits = 3), "\n",
+    H0,"\n",
+      "Kurtosis =", round(kurt, 2), ", Skewness =", round(skew, 2)),"\n", 
+          x = var, y = "Count")
+    
+  # Créez un QQ-plot
+  qq_plot <- ggplot(df, aes(sample = .data[[var]])) +
+    stat_qq() +
+    stat_qq_line() +
+    labs(title = paste("QQ-Plot"))
+  
+  # Affichez les deux graphiques côte à côte
+  plot <- grid.arrange(density_plot, qq_plot, ncol = 2, widths = c(10, 5))
+  print(plot)
+  # Save fig
+  if (SaveFig) {ggsave(filename = paste(plotpath,"Complex/","Normality_",var,".png", sep = ""), plot = plot)}
+}
+``` 
+
+## Visualisation des données
+```{r Complex - Distribution Boxplots, eval=FALSE}
+for (var in my_vars) {
+  print(paste("Boxplot variable : ",var))
+  boxplot <- ggplot(df, aes(x = df$SubjID, y = .data[[var]])) + geom_boxplot(position = position_dodge(0.8), width = 0.7) + labs(title = var, x = df$SubjID, y = var)+
+  geom_jitter(color="black", size=0.4, alpha=0.9) + theme(axis.text.x = element_text(angle = 90))
+  print(boxplot)
+  }
+```
+
+## Comparaison IOL - Complex
+Si la distribution suit une loi normale alors t.test de Fisher sinon Wilcoxon.
+ 
+```{r Complex - T.test, eval=FALSE}
+df <- merge(df, df.IOL, by = "SubjID")
+df <- df[, c("IOL", setdiff(names(df), "IOL"))]
+
+header_fact <-  c("IOL", "SubjID", "session_name","trial_name", "category", "light_condition_lux") 
+for (i in header_fact) { i <- as.factor(df$i)}
+
+# Initialiser une liste pour stocker les résultats des tests t
+t_test_results <- list()
+# Boucle à travers les variables (à partir de la colonne 2, car la colonne 1 est subjectID)
+for (variable in my_vars) {
+    # Effectuer le test t pour la variable actuelle
+  t_test_result <- t.test(df[[variable]] ~ df$IOL)
+    # Stocker les résultats dans la liste
+  t_test_results[[variable]] <- t_test_result}
+
+for (var in variables_normales) {
+  res <- t.test(df[[var]] ~ df$IOL)
+  print(paste("Boxplot variable : ",var))
+  boxplot <- ggplot(df, aes(x = factor(IOL), y = .data[[var]])) +
+  geom_boxplot(position = position_dodge(0.8), width = 0.7) +
+  labs(title = paste("Mean by IOL : ", var),x = "Groupe IOL",y = var)+
+  annotate("text", label = paste("Student's t-Test : ", "t = ", format(res$statistic, digits = 3),", df = ",
+  format(res$parameter, digits = 3),  ", p-value : ", format(res$p.value, digits = 3)), 
+  x = max(df$IOL)*0.8, y = max(df[[var]], na.rm = TRUE)* 1.1) 
+  print(boxplot)
+  ggsave(filename = paste(plotpath,"Complex/","Comparison_IOL_",var,".png", sep = ""), plot = boxplot)
+  print(paste("T.test variable : ",var))
+  print(res)
+}
+
+for (var in variables_non_normales) {
+  res<- wilcox.test(df[[var]] ~ df$IOL)
+  print(paste("Boxplot variable : ",var))
+  boxplot <- ggplot(df, aes(x = factor(IOL), y = .data[[var]])) +
+  geom_boxplot(position = position_dodge(0.8), width = 0.7) +
+  labs(title = paste("Mean by IOL : ", var),x = "Groupe IOL",y = var)+
+  annotate("text", label = paste("Wilcoxon test ",  "Method : ", res$alternative,  ", V = ", format(res$statistic, digits = 3), ", p-value : ", format(res$p.value, digits = 3)), 
+  x = max(df$IOL)*0.8, y = max(df[[var]], na.rm = TRUE)* 1.1) 
+  print(boxplot)
+  ggsave(filename = paste(plotpath,"Complex/","Comparison_IOL_",var,".png", sep = ""), plot = boxplot)
+  print(paste("wilcoxon result: ",var))
+  print(res)  
+}
+```
+
+
+
+
+
+
+
+
+
+
