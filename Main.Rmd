@@ -95,8 +95,10 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 # Work Directory
 ```{r Work Directory, eval=TRUE}
 knitr::opts_chunk$set(echo = FALSE)
-wd <- "D:/DriveStreetlab/Drive partagés/J_n_J_Clinical_Trials/J_n_J_WO6_Artemis2(Dec2022- )/SAP/R/JJ Loco Analyses R/"
+# wd <- "D:/DriveStreetlab/Drive partagés/J_n_J_Clinical_Trials/J_n_J_WO6_Artemis2(Dec2022- )/SAP/R/JJ Loco Analyses R/"
 # wd <- "G:/Drive partagés/J_n_J_Clinical_Trials/J_n_J_WO6_Artemis2(Dec2022- )/SAP/R/JJ Loco Analyses R/"
+wd <- "D:/Streetlab/JJ/J_n_J_WO6_Artemis2(Dec2022- )/JJ_Analyses_Loco/"
+
 fn_Crossing <- "Crossing_Session_result_combined_13_11_2023.csv"
 fn_Complex <- "Complex_Session_result_combined_13_11_2023.csv"
 fn_Group <- "IOL-group.csv"
@@ -106,8 +108,7 @@ ffn_Crossing <- paste(wd,fn_Crossing, sep = "")
 ffn_Complex <- paste(wd,fn_Complex, sep = "") 
 ffn_Group <- paste(wd,fn_Group, sep = "") 
 ffn_List_Subject <- paste(wd,fn_List_Subject, sep = "") 
-# plotpath <- "E:/Documents/ProjetsStreetlab/JnJ/J_n_J_WO6_Artemis2(Dec2022- )/Plot/"
-plotpath <- "D:/Streetlab/JJ/J_n_J_WO6_Artemis2(Dec2022- )/Plot"
+plotpath <- paste(wd, "Plot/", sep="")
 
 df.List.Subj <- read.csv(ffn_List_Subject, sep=";", dec=".",  na.strings = c("", "NA"))
 df.Group <- read.csv(ffn_Group, sep=",", dec=".",  na.strings = c("", "NA"))
@@ -172,33 +173,33 @@ header_chr <-  c("trial_duration_in_range",	"walking_duration_in_range",	"walkin
 "crossing_2_sd_speed_head_longitudinal_in_range", "crossing_2_head_pitch_frame_lead_foot_toe_off_before_in_range", "crossing_2_head_pitch_frame_applomb_lead_foot_in_range", "crossing_2_head_pitch_frame_trail_foot_heel_strike_after_in_range",
 "crossing_2_can_calculate_result", "crossing_2_MOS_AP_Y_in_range","crossing_2_MOS_ML_X_in_range")
 for (i in header_chr) {df[[i]] <- as.character(df[[i]])}
-
-# Filtrage Outliers
-outliers_info <- list()
-
-for (variable in my_vars) {
-  # Calculer la moyenne et l'écart-type
-  mean_val <- mean(df[[variable]], na.rm = TRUE)
-  sd_val <- sd(df[[variable]], na.rm = TRUE)
-  print(paste("mean_val", mean_val, "sd_val", sd_val))
-  # Définir les limites pour détecter les outliers
-  lower_limit <- mean_val - 1.96 * sd_val
-  upper_limit <- mean_val + 1.96 * sd_val
-  print(paste("lower_limit", lower_limit,",", "upper_limit", upper_limit))
-  
-  # Identifier les indices des outliers
-  outlier_indices <- which(df[[variable]] < lower_limit | df[[variable]] > upper_limit)
-  print(toutlier_indices)
-  
-  # Stocker les informations sur les outliers
-  outliers_info[[paste("Outliers_", variable)]] <- df[outlier_indices, c("trial", variable), drop = FALSE]
-  
-  # Exclure les outliers de la dataframe
-  df <- df[-outlier_indices, ]
-}
-
-# Afficher les informations sur les outliers
-print(outliers_info)
+# 
+# # Filtrage Outliers
+# outliers_info <- list()
+# 
+# for (variable in my_vars) {
+#   # Calculer la moyenne et l'écart-type
+#   mean_val <- mean(df[[variable]], na.rm = TRUE)
+#   sd_val <- sd(df[[variable]], na.rm = TRUE)
+#   print(paste("mean_val", mean_val, "sd_val", sd_val))
+#   # Définir les limites pour détecter les outliers
+#   lower_limit <- mean_val - 1.96 * sd_val
+#   upper_limit <- mean_val + 1.96 * sd_val
+#   print(paste("lower_limit", lower_limit,",", "upper_limit", upper_limit))
+#   
+#   # Identifier les indices des outliers
+#   outlier_indices <- which(df[[variable]] < lower_limit | df[[variable]] > upper_limit)
+#   print(toutlier_indices)
+#   
+#   # Stocker les informations sur les outliers
+#   outliers_info[[paste("Outliers_", variable)]] <- df[outlier_indices, c("trial", variable), drop = FALSE]
+#   
+#   # Exclure les outliers de la dataframe
+#   df <- df[-outlier_indices, ]
+# }
+# 
+# # Afficher les informations sur les outliers
+# print(outliers_info)
 
 
 
@@ -207,7 +208,7 @@ print(outliers_info)
 ...Loading data Crossing succed
 
 ## Normality test - Shapiro
-```{r Crossing Normality, eval=FALSE}
+```{r Crossing Normality, eval=TRUE}
 SaveFig <- "TRUE"
 
 print("Crossing - Analyses de la normalité des données pour l'ensemble des variables")
@@ -279,7 +280,7 @@ for (var in my_vars) {
 
 ## Visualisation des données
 ### Plot for each subject
-```{r Crossing Distribution for each subject, eval=FALSE}
+```{r Crossing Distribution for each subject, eval=TRUE}
 print("Liste des sujets analysés")
 print(list.subj)
 
@@ -301,7 +302,7 @@ for (i in list.subj) {
 ```
 
 ### Plot for all subj
-```{r Crossing Distribution all subj, eval=FALSE }
+```{r Crossing Distribution all subj, eval=TRUE }
 list.subj <- unique(df$SubjID)
 for (var in my_vars) {
     print(paste("Boxplot variable : ",var))
@@ -314,58 +315,49 @@ for (var in my_vars) {
 ```
 
 ## Comparaison IOL - Crossing
-```{r Crossing T.test, eval=FALSE}
+```{r Crossing T.test, eval=TRUE}
 df <- merge(df, df.Group, by = "SubjID")
 df <- df[, c("IOL", setdiff(names(df), "IOL"))]
 
 header_fact <-  c("IOL", "SubjID", "session_name","trial_name", "category", "light_condition_lux", "task_type","step_1_height", "step_1_position", "step_2_height", "step_2_position" )
 for (i in header_fact) { i <- as.factor(df$i)}
 
-# Initialiser une liste pour stocker les résultats des tests t
-t_test_results <- list()
-# Boucle à travers les variables (à partir de la colonne 2, car la colonne 1 est subjectID)
-for (variable in my_vars) {
-    # Effectuer le test t pour la variable actuelle
-  t_test_result <- t.test(df[[variable]] ~ df$IOL)
-    # Stocker les résultats dans la liste
-  t_test_results[[variable]] <- t_test_result}
-
-for (var in variables_normales) {
-  res <- t.test(df[[var]] ~ df$IOL)
-  print(paste("Boxplot variable : ",var))
-  boxplot <- ggplot(df, aes(x = factor(IOL), y = .data[[var]])) +
-  geom_boxplot(position = position_dodge(0.8), width = 0.7) +
-  labs(title = paste("Mean by IOL : ", var),x = "Groupe IOL",y = var)+
-  annotate("text", label = paste("Student's t-Test : ", "t = ", format(res$statistic, digits = 3),", df = ",
-  format(res$parameter, digits = 3),  ", p-value : ", format(res$p.value, digits = 3)), 
-  x = max(df$IOL)*0.8, y = max(df[[var]], na.rm = TRUE)* 1.1) 
-  print(boxplot)
-  ggsave(filename = paste(plotpath,"Crossing/","Comparison_IOL_",var,".png", sep = ""), plot = boxplot)
-  print(paste("T.test variable : ",var))
-  print(res)
+for (var in my_vars) {
+  if (var %in% variables_normales) {
+    res <- t.test(df[[var]] ~ df$IOL)
+    print(paste("Boxplot variable : ",var))
+    boxplot <- ggplot(df, aes(x = factor(IOL), y = .data[[var]])) +
+    geom_boxplot(position = position_dodge(0.8), width = 0.7) +
+    labs(title = paste("Mean by IOL : ", var),x = "Groupe IOL",y = var)+
+    annotate("text", label = paste("Student's t-Test : ", "t = ", format(res$statistic, digits = 3),", df = ",
+    format(res$parameter, digits = 3),  ", p-value : ", format(res$p.value, digits = 3)), 
+    x = max(df$IOL)*0.8, y = max(df[[var]], na.rm = TRUE)* 1.1) 
+    print(boxplot)
+    ggsave(filename = paste(plotpath,"Crossing/","Comparison_IOL_",var,".png", sep = ""), plot = boxplot)
+    print(paste("T.test variable : ",var))
+    print(res)  } 
+  else {
+    res<- wilcox.test(df[[var]] ~ df$IOL)
+    print(paste("Boxplot variable : ",var))
+    boxplot <- ggplot(df, aes(x = factor(IOL), y = .data[[var]])) +
+    geom_boxplot(position = position_dodge(0.8), width = 0.7) +
+    labs(title = paste("Mean by IOL : ", var),x = "Groupe IOL",y = var)+
+    annotate("text", label = paste("Wilcoxon test ",  "Method : ", res$alternative,  ", V = ", format(res$statistic, digits = 3), ", p-value : ", format(res$p.value, digits = 3)), 
+    x = max(df$IOL)*0.8, y = max(df[[var]], na.rm = TRUE)* 1.1) 
+    print(boxplot)
+    ggsave(filename = paste(plotpath,"Crossing/","Comparison_IOL_",var,".png", sep = ""), plot = boxplot)
+    print(paste("wilcoxon result: ",var))
+    print(res) 
+  }
 }
   
-
-for (var in variables_non_normales) {
-  res<- wilcox.test(df[[var]] ~ df$IOL)
-  print(paste("Boxplot variable : ",var))
-  boxplot <- ggplot(df, aes(x = factor(IOL), y = .data[[var]])) +
-  geom_boxplot(position = position_dodge(0.8), width = 0.7) +
-  labs(title = paste("Mean by IOL : ", var),x = "Groupe IOL",y = var)+
-  annotate("text", label = paste("Wilcoxon test ",  "Method : ", res$alternative,  ", V = ", format(res$statistic, digits = 3), ", p-value : ", format(res$p.value, digits = 3)), 
-  x = max(df$IOL)*0.8, y = max(df[[var]], na.rm = TRUE)* 1.1) 
-  print(boxplot)
-  ggsave(filename = paste(plotpath,"Crossing/","Comparison_IOL_",var,".png", sep = ""), plot = boxplot)
-  print(paste("wilcoxon result: ",var))
-  print(res)  
-}
 ```
 
 
 # Complex
 ## Load data 
 Loading data Complex ...
-```{r Complex Load data, eval=FALSE}
+```{r Complex Load data, eval=TRUE}
 df <- data.frame()
 df.IOL <- read.csv(ffn_Group, sep=",", dec=".",  na.strings = c("", "NA"))
 
@@ -435,7 +427,7 @@ for (variable in my_vars) {
 
 ```
 ## Normality test - Shapiro
-```{r Complex Normality, eval=FALSE}
+```{r Complex Normality, eval=TRUE}
 SaveFig <- "TRUE"
 variables_normales <- c()
 variables_non_normales <- c()
@@ -484,7 +476,7 @@ for (var in my_vars) {
 ``` 
 
 ## Visualisation des données
-```{r Complex - Distribution Boxplots, eval=FALSE}
+```{r Complex - Distribution Boxplots, eval=TRUE}
 for (var in my_vars) {
   print(paste("Boxplot variable : ",var))
   boxplot <- ggplot(df, aes(x = df$SubjID, y = .data[[var]])) + geom_boxplot(position = position_dodge(0.8), width = 0.7) + labs(title = var, x = df$SubjID, y = var)+
@@ -496,50 +488,42 @@ for (var in my_vars) {
 ## Comparaison IOL - Complex
 Si la distribution suit une loi normale alors t.test de Fisher sinon Wilcoxon.
  
-```{r Complex - T.test, eval=FALSE}
+```{r Complex - T.test, eval=TRUE}
 df <- merge(df, df.IOL, by = "SubjID")
 df <- df[, c("IOL", setdiff(names(df), "IOL"))]
 
 header_fact <-  c("IOL", "SubjID", "session_name","trial_name", "category", "light_condition_lux") 
 for (i in header_fact) { i <- as.factor(df$i)}
 
-# Initialiser une liste pour stocker les résultats des tests t
-t_test_results <- list()
-# Boucle à travers les variables (à partir de la colonne 2, car la colonne 1 est subjectID)
-for (variable in my_vars) {
-    # Effectuer le test t pour la variable actuelle
-  t_test_result <- t.test(df[[variable]] ~ df$IOL)
-    # Stocker les résultats dans la liste
-  t_test_results[[variable]] <- t_test_result}
-
-for (var in variables_normales) {
-  res <- t.test(df[[var]] ~ df$IOL)
-  print(paste("Boxplot variable : ",var))
-  boxplot <- ggplot(df, aes(x = factor(IOL), y = .data[[var]])) +
-  geom_boxplot(position = position_dodge(0.8), width = 0.7) +
-  labs(title = paste("Mean by IOL : ", var),x = "Groupe IOL",y = var)+
-  annotate("text", label = paste("Student's t-Test : ", "t = ", format(res$statistic, digits = 3),", df = ",
-  format(res$parameter, digits = 3),  ", p-value : ", format(res$p.value, digits = 3)), 
-  x = max(df$IOL)*0.8, y = max(df[[var]], na.rm = TRUE)* 1.1) 
-  print(boxplot)
-  ggsave(filename = paste(plotpath,"Complex/","Comparison_IOL_",var,".png", sep = ""), plot = boxplot)
-  print(paste("T.test variable : ",var))
-  print(res)
+for (var in my_vars) {
+  if (var %in% variables_normales) {
+    res <- t.test(df[[var]] ~ df$IOL)
+    print(paste("Boxplot variable : ",var))
+    boxplot <- ggplot(df, aes(x = factor(IOL), y = .data[[var]])) +
+    geom_boxplot(position = position_dodge(0.8), width = 0.7) +
+    labs(title = paste("Mean by IOL : ", var),x = "Groupe IOL",y = var)+
+    annotate("text", label = paste("Student's t-Test : ", "t = ", format(res$statistic, digits = 3),", df = ",
+    format(res$parameter, digits = 3),  ", p-value : ", format(res$p.value, digits = 3)), 
+    x = max(df$IOL)*0.8, y = max(df[[var]], na.rm = TRUE)* 1.1) 
+    print(boxplot)
+    ggsave(filename = paste(plotpath,"Complex/","Comparison_IOL_",var,".png", sep = ""), plot = boxplot)
+    print(paste("T.test variable : ",var))
+    print(res)  } 
+  else {
+    res<- wilcox.test(df[[var]] ~ df$IOL)
+    print(paste("Boxplot variable : ",var))
+    boxplot <- ggplot(df, aes(x = factor(IOL), y = .data[[var]])) +
+    geom_boxplot(position = position_dodge(0.8), width = 0.7) +
+    labs(title = paste("Mean by IOL : ", var),x = "Groupe IOL",y = var)+
+    annotate("text", label = paste("Wilcoxon test ",  "Method : ", res$alternative,  ", V = ", format(res$statistic, digits = 3), ", p-value : ", format(res$p.value, digits = 3)), 
+    x = max(df$IOL)*0.8, y = max(df[[var]], na.rm = TRUE)* 1.1) 
+    print(boxplot)
+    ggsave(filename = paste(plotpath,"Complex/","Comparison_IOL_",var,".png", sep = ""), plot = boxplot)
+    print(paste("wilcoxon result: ",var))
+    print(res) 
+  }
 }
 
-for (var in variables_non_normales) {
-  res<- wilcox.test(df[[var]] ~ df$IOL)
-  print(paste("Boxplot variable : ",var))
-  boxplot <- ggplot(df, aes(x = factor(IOL), y = .data[[var]])) +
-  geom_boxplot(position = position_dodge(0.8), width = 0.7) +
-  labs(title = paste("Mean by IOL : ", var),x = "Groupe IOL",y = var)+
-  annotate("text", label = paste("Wilcoxon test ",  "Method : ", res$alternative,  ", V = ", format(res$statistic, digits = 3), ", p-value : ", format(res$p.value, digits = 3)), 
-  x = max(df$IOL)*0.8, y = max(df[[var]], na.rm = TRUE)* 1.1) 
-  print(boxplot)
-  ggsave(filename = paste(plotpath,"Complex/","Comparison_IOL_",var,".png", sep = ""), plot = boxplot)
-  print(paste("wilcoxon result: ",var))
-  print(res)  
-}
 ```
 
 
